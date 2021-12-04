@@ -1,0 +1,17 @@
+{
+  "name": "vesting",
+  "version": "1.0.0",
+  "description": "Vesting demo",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build:program-rust": "cargo build-bpf --manifest-path=./Cargo.toml --bpf-out-dir=dist/program",
+    "start": "node client/index.js"
+  },
+  "author": "Emile",
+  "license": "ISC",
+  "dependencies": {
+    "@solana/spl-token": "^0.1.8",
+    "@solana/web3.js": "^1.31.0"
+  }
+}
