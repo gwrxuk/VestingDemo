@@ -2,12 +2,12 @@ var solana_web3 = require('@solana/web3.js');
 var spl_token = require("@solana/spl-token");
 
 async function testVesting(connection, account){
-    let programId = new solana_web3.PublicKey("3jwszvTDRQp8UakHTAd5EJ1gURqNbuWcRsGbtU31gNYL",);
+    let programId = new solana_web3.PublicKey("HSAMPxyGhyM15hYp6DKHhPVdtqtKSkeAEp9eeY7ixEDb",);
+    const target_account = "5gsmZASNC26PJQJCRs8tEAb2meNAUAd3TfmJ5TghV4RN"
     let seeds = '';
-    for (let i = 0; i < 64; i++) {
+    for (let i = 0; i < 31; i++) {
       seeds += Math.floor(Math.random() * 10);
     }
-    seeds = seeds.slice(0, 31);
     seeds = Buffer.from(seeds);
 
     const [vestingAccountKey, bump] = await solana_web3.PublicKey.findProgramAddress(
@@ -15,15 +15,24 @@ async function testVesting(connection, account){
         programId,
     );
       
+
+    var key_dict = "target_account:"+target_account+"|system_program_account:"+solana_web3.SystemProgram.programId+"|rent_account:"+solana_web3.SYSVAR_RENT_PUBKEY+"|payer_account:"+account.publicKey+"|vesting_account:"+vestingAccountKey+"|";
+    var buf = Buffer.from(key_dict);
+
+    
     seeds = Buffer.from(seeds.toString('hex') + bump.toString(16), 'hex');
+
     let buffers = [
         Buffer.from(Int8Array.from([0]).buffer),
         seeds,
+        Buffer.from(Int8Array.from([5]).buffer),
+        Buffer.alloc(3),
+        buf,
         Buffer.alloc(32),
       ];
-      
-      buffers = buffers.slice(0,31);
+
       const data = Buffer.concat(buffers);
+      
       console.log(programId);
       const keys = [
         {
@@ -48,6 +57,7 @@ async function testVesting(connection, account){
         },
       ];
 
+    
     const instruction = new solana_web3.TransactionInstruction({
         keys: keys,
         programId: programId,

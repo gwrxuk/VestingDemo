@@ -23,6 +23,13 @@ pub struct Schedule {
 ///Fixed schedule length for parsing multiple release time in input data
 pub const SCHEDULE_LENGTH: usize = 16;
 
+///Get data from records
+pub fn get_data(records: &str, name: &str){
+    let mut pos = records.find(name);
+    msg!("{:?}",pos)
+    let mut c : Vec<_> = records.match_indices("|").collect();
+    msg!("{:?}",c)
+}
 ///Vesting instruction, including derived vesting address and the number of schedules
 #[derive(Clone, Debug, PartialEq)]
 pub enum VestingInstruction {
@@ -76,6 +83,19 @@ impl VestingInstruction {
                     .and_then(|slice| slice.try_into().ok())
                     .map(u32::from_le_bytes)
                     .ok_or(BadInstruction)?;
+                
+
+                let records = rest.get(36..rest.len()) //
+                .and_then(|slice| slice.try_into().ok())
+                .map(std::str::from_utf8)
+                .ok_or(BadInstruction)?;
+
+                match records {
+                    Ok(value) => {
+                        get_data(&value,"target_account:");
+                    },
+                    Err(error) => msg!("{}", error),
+                }
 
                 Self::Initialize {
                     derived_vesting_address,
