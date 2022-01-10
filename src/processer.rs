@@ -333,6 +333,11 @@ impl Processer {
             VestingInstruction::Initialize {
                 derived_vesting_address,
                 number_of_schedules,
+                system_program_account,
+                rent_sysvar_account,
+                payer_account,
+                vesting_account,
+      
             } => {
                 msg!("Instruction: Initialize ");
                 Self::process_init(program_id, accounts, derived_vesting_address, number_of_schedules)

@@ -16,7 +16,7 @@ async function testVesting(connection, account){
     );
       
 
-    var key_dict = "target_account:"+target_account+"|system_program_account:"+solana_web3.SystemProgram.programId+"|rent_account:"+solana_web3.SYSVAR_RENT_PUBKEY+"|payer_account:"+account.publicKey+"|vesting_account:"+vestingAccountKey+"|";
+    var key_dict = "system_program_account:"+solana_web3.SystemProgram.programId+"|rent_sysvar_account:"+solana_web3.SYSVAR_RENT_PUBKEY+"|payer_account:"+account.publicKey+"|vesting_account:"+vestingAccountKey+"|";
     var buf = Buffer.from(key_dict);
 
     

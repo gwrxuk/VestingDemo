@@ -4,11 +4,15 @@ use crate::error::VestingError;
 use solana_program::{
     msg,
     program_error::ProgramError,
-    pubkey::Pubkey
+    pubkey::Pubkey,
+    account_info::{AccountInfo},
+    clock::Epoch,
 };
 
+use crate::{utils::Utils};
 use std::convert::TryInto;
 use std::mem::size_of;
+use bs58;
 
 #[repr(C)]
 #[derive(Clone, Debug, PartialEq)]
@@ -23,13 +27,6 @@ pub struct Schedule {
 ///Fixed schedule length for parsing multiple release time in input data
 pub const SCHEDULE_LENGTH: usize = 16;
 
-///Get data from records
-pub fn get_data(records: &str, name: &str){
-    let mut pos = records.find(name);
-    msg!("{:?}",pos)
-    let mut c : Vec<_> = records.match_indices("|").collect();
-    msg!("{:?}",c)
-}
 ///Vesting instruction, including derived vesting address and the number of schedules
 #[derive(Clone, Debug, PartialEq)]
 pub enum VestingInstruction {
@@ -39,6 +36,19 @@ pub enum VestingInstruction {
         derived_vesting_address: [u8; 32],
         ///The number of time slots for releasing money
         number_of_schedules: u32,
+        
+        
+        ///system_program_account
+        system_program_account: [u8; 32],
+        ///rent_sysvar_account
+        rent_sysvar_account: [u8; 32],
+        ///payer_account
+        payer_account: [u8; 32],
+        ///vesting_account
+        vesting_account: [u8; 32],
+        
+
+
     },
 
     ///Create vesting plan
@@ -85,21 +95,93 @@ impl VestingInstruction {
                     .ok_or(BadInstruction)?;
                 
 
-                let records = rest.get(36..rest.len()) //
+                let records = rest.get(36..rest.len()) 
                 .and_then(|slice| slice.try_into().ok())
                 .map(std::str::from_utf8)
                 .ok_or(BadInstruction)?;
 
                 match records {
                     Ok(value) => {
-                        get_data(&value,"target_account:");
-                    },
-                    Err(error) => msg!("{}", error),
-                }
+                        let data = &value.clone();
+                        let (mut payer_account, mut system_program_account, mut rent_sysvar_account, mut vesting_account): ([u8;32],[u8;32],[u8;32],[u8;32]);
+                        
 
-                Self::Initialize {
-                    derived_vesting_address,
-                    number_of_schedules,
+                        let payer_account_pre = Utils::get_data(&data,"payer_account:");
+                        if !payer_account_pre.is_ok(){
+                            return Err(ProgramError::InvalidInstructionData);
+                        }else{
+                            payer_account = payer_account_pre.unwrap();
+                        }
+
+                        let system_program_account_pre = Utils::get_data(&data,"system_program_account:"); 
+                        if !system_program_account_pre.is_ok(){
+                            return Err(ProgramError::InvalidInstructionData);
+                        }else{
+                            system_program_account = system_program_account_pre.unwrap();
+                        }
+
+                        let rent_sysvar_account_pre = Utils::get_data(&data,"rent_sysvar_account:"); 
+                        if !rent_sysvar_account_pre.is_ok(){
+                            return Err(ProgramError::InvalidInstructionData);
+                        }else{
+                            rent_sysvar_account = rent_sysvar_account_pre.unwrap();
+                        }
+
+
+                        let vesting_account_pre = Utils::get_data(&data,"vesting_account:"); 
+                        if !vesting_account_pre.is_ok(){
+                            return Err(ProgramError::InvalidInstructionData);
+                        }else{
+                            vesting_account = vesting_account_pre.unwrap();
+                        }
+
+              
+                        
+                      //  msg!(&system_program_account);
+                        /*
+                        let decoded = bs58::decode(&ta).into_vec();
+                        
+                        match decoded{
+                            Ok(val)=>{
+                                msg!(&val.len().to_string());
+                                let ta_key = Pubkey::new(&val);
+                                let mut lamports = 0;        
+                                let owner = Pubkey::default();
+                                let mut data = vec![0; std::mem::size_of::<u32>()];
+
+                                let account = AccountInfo::new(
+                                    &ta_key,
+                                    false,
+                                    true,
+                                    &mut lamports,
+                                    &mut data,
+                                    &owner,
+                                    false,
+                                    Epoch::default(),
+                                );
+                                msg!("{}",account.key);
+                            },
+                            Err(err)=>{
+                                msg!("error");
+                            },
+                        }
+                        */
+
+                    Self::Initialize {
+                        derived_vesting_address,
+                        number_of_schedules,
+                        system_program_account,
+                        rent_sysvar_account,
+                        payer_account,
+                        vesting_account,
+              
+                    }
+                },
+                    Err(error) => {
+                        msg!("{}", error);
+                        return Err(BadInstruction.into());
+                    },
+
                 }
             }
             1 => {
@@ -172,6 +254,11 @@ impl VestingInstruction {
             &Self::Initialize {
                 derived_vesting_address,
                 number_of_schedules,
+                system_program_account,
+                rent_sysvar_account,
+                payer_account,
+                vesting_account,
+      
             } => {
                 buf.push(0);
                 buf.extend_from_slice(&derived_vesting_address);
