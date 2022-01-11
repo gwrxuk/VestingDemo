@@ -12,10 +12,12 @@ use solana_program::{
     system_instruction::create_account,
     sysvar::{clock::Clock, Sysvar},
     msg,
+    clock::Epoch,
 };
 use num_traits::FromPrimitive;
 use spl_token::{instruction::transfer, state::Account};
-
+use bs58;
+use std::cell::{RefCell, Ref};
 use crate::{
     error::VestingError,
     instruction::{Schedule, VestingInstruction, SCHEDULE_LENGTH},
@@ -26,25 +28,141 @@ use crate::{
 pub struct Processer {}
 
 impl Processer {
+    
+    /*
+    ///Generate account info from key
+    pub fn generate_account_info(key: [u8; 32],lamports: u8)->MyAccount{
+          return MyAccount{key:Pubkey::new(&key)};      
+        // return (Pubkey::new(&key),lamports,Pubkey::default());
+
+            let ta_key = Pubkey::new(&key);
+            let mut lamports = 0;        
+            let owner = Pubkey::default();
+           // let mut data = vec![0; std::mem::size_of::<u32>()];
+
+            &AccountInfo::new(
+                &ta_key,
+                false,
+                true,
+                &mut lamports,
+                &mut [0,0,0,0],//data
+                &owner,
+                false,
+                Epoch::default(),
+            )
+                         
+                        
+
+    }
+    */
+
     ///Initalize the program
     pub fn process_init(
         program_id: &Pubkey,
         accounts: &[AccountInfo],
         derived_vesting_address: [u8; 32],
-        schedules: u32
+        schedules: u32,
+        system_program_account: [u8; 32], 
+        rent_sysvar_account: [u8; 32],
+        payer_account: [u8; 32],
+        vesting_account: [u8; 32]
     ) -> ProgramResult {
      
+
+         let mut key = Pubkey::new(&system_program_account);
+         let mut lamports:u64 = 0;        
+         let owner = &Pubkey::default();
+         let mut data:[u8; 4] = [0;4];
+     
+
+         let system_program_account = AccountInfo::new(
+            &key,
+            false,
+            false,
+            &mut lamports,
+            &mut data,
+            owner,
+            false,
+            Epoch::default(),
+        );
+            
+        let mut key = Pubkey::new(&rent_sysvar_account);
+        let mut lamports:u64 = 0;        
+        let owner = &Pubkey::default();
+        let mut data:[u8; 4] = [0;4];
+
+        let rent_sysvar_account = AccountInfo::new(
+            &key,
+            false,
+            false,
+            &mut lamports,
+            &mut data,
+            owner,
+            false,
+            Epoch::default(),
+        );
+            
+        let mut key = Pubkey::new(&payer_account);
+        let mut lamports:u64 = 0;        
+        let owner = &Pubkey::default();
+        let mut data:[u8; 4] = [0;4];
+
+        let payer = AccountInfo::new(
+            &key,
+            true,
+            true,
+            &mut lamports,
+            &mut data,
+            owner,
+            false,
+            Epoch::default(),
+        );
+            
+        let mut key = Pubkey::new(&vesting_account);
+        let mut lamports:u64 = 0;        
+        let owner = &Pubkey::default();
+        let mut data:[u8; 4] = [0;4];
+        let vesting_account = AccountInfo::new(
+            &key,
+            false,
+            true,
+            &mut lamports,
+            &mut data,
+            owner,
+            false,
+            Epoch::default(),
+        );
+            
+     
+/*
+      
         let accounts_iter = &mut accounts.iter();
+   
+   
         let system_program_account = next_account_info(accounts_iter)?;
         let rent_sysvar_account = next_account_info(accounts_iter)?;
         let payer = next_account_info(accounts_iter)?;
         let vesting_account = next_account_info(accounts_iter)?;
-        let rent = Rent::from_account_info(rent_sysvar_account)?;
+   */
+        msg!("aaaaa");
+   
+        msg!(&*rent_sysvar_account.key.to_string());
+        msg!(&*vesting_account.key.to_string());
+      //  let rent = Rent::from_account_info(&rent_sysvar_account)?;
+        let b1:Ref<&mut [u8]> = rent_sysvar_account.data.borrow();
+       // msg!(&String::from_utf8_lossy(t));
+
+       msg!(&b1.len().to_string());
+        msg!("bbbbb");
         let vesting_account_key = Pubkey::create_program_address(&[&derived_vesting_address], &program_id).unwrap();
+        msg!("ccccc");
+        msg!(&vesting_account_key.to_string());
+  
         if vesting_account_key != *vesting_account.key {
             msg!("Error: please confirm your vesting account and key are correct.");
             return Err(ProgramError::InvalidArgument);
         }
+        
         msg!("Processing Initialization");
         let state_size = (schedules as usize) * VestingSchedule::LEN + VestingScheduleInfo::LEN;
 
@@ -52,7 +170,8 @@ impl Processer {
         let init_vesting_account = create_account(
             &payer.key,
             &vesting_account_key,
-            rent.minimum_balance(state_size),
+            0,
+            //rent.minimum_balance(state_size),
             state_size as u64,
             &program_id,
         );
@@ -340,7 +459,7 @@ impl Processer {
       
             } => {
                 msg!("Instruction: Initialize ");
-                Self::process_init(program_id, accounts, derived_vesting_address, number_of_schedules)
+                Self::process_init(program_id, accounts, derived_vesting_address, number_of_schedules, system_program_account, rent_sysvar_account, payer_account, vesting_account)
             }
             VestingInstruction::Unlock { derived_vesting_address } => {
                 msg!("Instruction: Unlock");
